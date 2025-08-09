@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
   <title>Cashflow</title>
   <style>
     :root{--bg:#0b1020;--panel:#121a34;--card:#0f1530;--acc:#2d6df6;--text:#e8ecff;--muted:#a7b0d6;--danger:#ff5d5d;--ok:#30d158}
-    *{box-sizing:border-box}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
     html,body{height:100%}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:radial-gradient(1200px 800px at 20% -10%,#1a2455 0%,#0b1020 55%);color:var(--text)}
     .wrap{max-width:1100px;margin:auto;padding:16px;display:grid;gap:16px}
@@ -22,7 +22,7 @@
     .players{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
     .player{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
     .p-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
-    .p-name{font-weight:700;font-size:22px;outline:none;border:none;background:transparent;color:var(--text);border-bottom:1px dashed transparent}
+    .p-name{font-weight:700;font-size:22px;outline:none;border:none;background:transparent;color:var(--text);border-bottom:1px dashed transparent;-webkit-user-select:text;user-select:text}
     .p-name[contenteditable="true"]:focus{border-color:#3a4b9a}
     .balance{font-feature-settings:"tnum" 1;letter-spacing:.3px;font-size:24px;font-weight:800}
     .controls{display:flex;gap:8px;margin-top:12px}
