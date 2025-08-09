@@ -64,9 +64,8 @@
         <div class="display">
           <div>
             <div class="label">Amount Ready</div>
-            <div id="amount" class="amount">$0.00</div>
+            <div id="amount" class="amount">$0</div>
           </div>
-          <div class="muted" id="centsInfo"></div>
         </div>
 
         <div class="keypad" id="keypad"></div>
@@ -107,34 +106,29 @@
       }
     });
 
-    // --- Money utils (stores as cents for precision) ---
-    function toCents(str){
+    // --- Money utils (stores as whole dollars) ---
+    function toDollars(str){
       if(str === null || str === undefined) return 0;
       str = String(str).trim();
       if(!str) return 0;
-      // Remove currency/space, keep minus and decimal
+      // Remove currency/space, keep minus
       let sign = 1;
       if(str.startsWith('-')){ sign = -1; str = str.slice(1); }
-      str = str.replace(/[^0-9.]/g,'');
+      str = str.replace(/[^0-9]/g,'');
       if(!str) return 0;
-      const parts = str.split('.');
-      let dollars = parts[0].replace(/\D/g,'') || '0';
-      let cents = (parts[1] || '').slice(0,2).padEnd(2,'0');
-      const val = sign * (parseInt(dollars,10)*100 + parseInt(cents||'0',10));
+      const val = sign * parseInt(str, 10);
       return isNaN(val) ? 0 : val;
     }
-    function fmt(cents){
-      const sign = cents < 0 ? '-' : '';
-      const abs = Math.abs(cents|0);
-      const d = Math.floor(abs/100);
-      const c = String(abs%100).padStart(2,'0');
-      return sign + '$' + d.toLocaleString('en-US') + '.' + c;
+    function fmt(dollars){
+      const sign = dollars < 0 ? '-' : '';
+      const abs = Math.abs(dollars|0);
+      return sign + '$' + abs.toLocaleString('en-US');
     }
 
     // Clean, testable operation
-    function applyOp(balanceCents, op, amountCents){
-      if(!amountCents) return balanceCents|0;
-      return (op === '+') ? (balanceCents|0) + amountCents : (balanceCents|0) - amountCents;
+    function applyOp(balance, op, amount){
+      if(!amount) return balance|0;
+      return (op === '+') ? (balance|0) + amount : (balance|0) - amount;
     }
 
     // --- State ---
@@ -150,7 +144,6 @@
 
     const $players = document.getElementById('players');
     const $amount = document.getElementById('amount');
-    const $centsInfo = document.getElementById('centsInfo');
 
     // --- Render ---
     function renderPlayers(){
@@ -175,9 +168,8 @@
 
     function setAmountStr(str){
       currentAmountStr = str;
-      const cents = toCents(str);
-      $amount.textContent = fmt(cents);
-      $centsInfo.textContent = cents ? `${cents}¢` : '';
+      const dollars = toDollars(str);
+      $amount.textContent = fmt(dollars);
     }
 
     function appendToAmount(ch){ setAmountStr((currentAmountStr||'') + ch); }
@@ -185,17 +177,17 @@
     function clearAmount(){ setAmountStr(''); }
 
     function applyTo(idx, op){
-      const cents = toCents(currentAmountStr);
-      if(!cents) return; // ignore 0
+      const dollars = toDollars(currentAmountStr);
+      if(!dollars) return; // ignore 0
       lastTargetIndex = idx;
-      players[idx].balance = applyOp(players[idx].balance, op, cents);
+      players[idx].balance = applyOp(players[idx].balance, op, dollars);
       save();
       renderPlayers();
       clearAmount();
     }
 
     // --- Init keypad ---
-    const keypadLayout = ["7","8","9","4","5","6","1","2","3",".","0","⌫","C"];
+    const keypadLayout = ["7","8","9","4","5","6","1","2","3","0","⌫","C"];
     const $keypad = document.getElementById('keypad');
     keypadLayout.forEach(k=>{
       const b = document.createElement('button');
@@ -213,9 +205,9 @@
     document.querySelectorAll('.chip').forEach(ch=>{
       ch.addEventListener('click', ()=>{
         const val = parseInt(ch.dataset.preset,10);
-        const cur = toCents(currentAmountStr);
-        const next = cur + (val*100);
-        setAmountStr(String(next/100));
+        const cur = toDollars(currentAmountStr);
+        const next = cur + val;
+        setAmountStr(String(Math.max(0, next))); // Prevent negative amounts in input
       });
     });
 
@@ -242,8 +234,8 @@
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e)=>{
-      // numbers and decimal
-      if(/^[0-9]$/.test(e.key) || e.key === '.'){ appendToAmount(e.key); return; }
+      // numbers only (no decimal point)
+      if(/^[0-9]$/.test(e.key)){ appendToAmount(e.key); return; }
       if(e.key === 'Backspace'){ backspace(); return; }
       if(e.key.toLowerCase() === 'c'){ clearAmount(); return; }
       if(e.key === 'Enter'){ applyTo(lastTargetIndex, '+'); return; }
@@ -276,25 +268,24 @@
         try{ fn(); results.push({name, ok:true}); }
         catch(err){ console.error('Test failed:', name, err); results.push({name, ok:false, err}); }
       }
-      // toCents
-      t('toCents("0") == 0', ()=>{ if(toCents('0')!==0) throw new Error(); });
-      t('toCents("12") == 1200', ()=>{ if(toCents('12')!==1200) throw new Error(); });
-      t('toCents("12.3") == 1230', ()=>{ if(toCents('12.3')!==1230) throw new Error(); });
-      t('toCents("12.34") == 1234', ()=>{ if(toCents('12.34')!==1234) throw new Error(); });
-      t('toCents("$1,234.56") == 123456', ()=>{ if(toCents('$1,234.56')!==123456) throw new Error(); });
-      t('toCents("-7.05") == -705', ()=>{ if(toCents('-7.05')!==-705) throw new Error(); });
+      // toDollars
+      t('toDollars("0") == 0', ()=>{ if(toDollars('0')!==0) throw new Error(); });
+      t('toDollars("12") == 12', ()=>{ if(toDollars('12')!==12) throw new Error(); });
+      t('toDollars("123") == 123', ()=>{ if(toDollars('123')!==123) throw new Error(); });
+      t('toDollars("$1,234") == 1234', ()=>{ if(toDollars('$1,234')!==1234) throw new Error(); });
+      t('toDollars("-7") == -7', ()=>{ if(toDollars('-7')!==-7) throw new Error(); });
       // fmt
-      t('fmt(0) == $0.00', ()=>{ if(fmt(0) !== '$0.00') throw new Error(fmt(0)); });
-      t('fmt(1234) == $12.34', ()=>{ if(fmt(1234) !== '$12.34') throw new Error(fmt(1234)); });
-      t('fmt(-705) == -$7.05', ()=>{ if(fmt(-705) !== '-$7.05') throw new Error(fmt(-705)); });
+      t('fmt(0) == $0', ()=>{ if(fmt(0) !== '$0') throw new Error(fmt(0)); });
+      t('fmt(1234) == $1,234', ()=>{ if(fmt(1234) !== '$1,234') throw new Error(fmt(1234)); });
+      t('fmt(-705) == -$705', ()=>{ if(fmt(-705) !== '-$705') throw new Error(fmt(-705)); });
       // applyOp
       t('applyOp(1000,"+",250) == 1250', ()=>{ if(applyOp(1000,'+',250)!==1250) throw new Error(); });
       t('applyOp(1000,"-",250) == 750', ()=>{ if(applyOp(1000,'-',250)!==750) throw new Error(); });
       t('applyOp(0,"+",0) == 0', ()=>{ if(applyOp(0,'+',0)!==0) throw new Error(); });
       // Integration: simulate add/subtract
-      const tmp = [{name:'A', balance:0},{name:'B', balance:5000}];
-      let bal = tmp[1].balance; bal = applyOp(bal,'-',toCents('20')); if(bal!==4800) throw new Error('subtract integration');
-      bal = applyOp(bal,'+',toCents('0.50')); if(bal!==4850) throw new Error('add integration');
+      const tmp = [{name:'A', balance:0},{name:'B', balance:500}];
+      let bal = tmp[1].balance; bal = applyOp(bal,'-',20); if(bal!==480) throw new Error('subtract integration');
+      bal = applyOp(bal,'+',50); if(bal!==530) throw new Error('add integration');
 
       const ok = results.every(r=>r.ok);
       const $status = document.getElementById('testStatus');
